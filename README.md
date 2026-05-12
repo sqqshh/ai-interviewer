@@ -1,4 +1,4 @@
-# 🤖 AI Interview Platform
+# AI Interview Platform
 
 A production-style AI-powered interview platform specialized for **AI/ML roles**. It reads your resume, GitHub profile, and a job description — then conducts a fully personalized, adaptive interview with real-time scoring and feedback.
 
@@ -6,21 +6,22 @@ Built with FastAPI + React + Groq (free LLaMA3-70b inference).
 
 ---
 
-## ✨ Features
+## Features
 
-- 📄 **Resume Parsing** — Extracts skills, projects, and experience from your PDF resume
-- 🐙 **GitHub Analysis** — Fetches your public repos to personalize questions
-- 🧠 **Personalized Questions** — 10 questions tailored to YOUR background, not generic ones
-- 🎯 **Adaptive Difficulty** — Gets harder when you do well, easier when you struggle
-- 💬 **Dynamic Follow-ups** — Asks follow-up questions if your answer is incomplete
-- 📊 **Real-time Scoring** — Each answer scored 1-10 with concepts covered/missed
-- 📝 **Full Report** — Skill breakdown, strengths, improvement areas, hire recommendation
-- ⚡ **Fast** — Powered by Groq's ultra-fast LLaMA3-70b inference (free tier)
+- **Resume Parsing** — Extracts skills, projects, and experience from your PDF resume
+- **GitHub Analysis** — Fetches your public repos to personalize questions
+- **Personalized Questions** — 10 questions tailored to YOUR background, not generic ones
+- **Adaptive Difficulty** — Gets harder when you do well, easier when you struggle
+- **Dynamic Follow-ups** — Asks follow-up questions if your answer is incomplete
+- **Real-time Scoring** — Each answer scored 1-10 with concepts covered/missed
+- **Full Report** — Skill breakdown, strengths, improvement areas, hire recommendation
+- **Fast** — Powered by Groq's ultra-fast LLaMA3-70b inference (free tier)
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
+```text
 ┌─────────────────────────────────────────┐
 │           Frontend (React + Vite)        │
 │  Setup Page → Interview Chat → Report   │
@@ -37,10 +38,11 @@ Built with FastAPI + React + Groq (free LLaMA3-70b inference).
 │         Groq API (Free Tier)             │
 │      LLaMA3-70b-versatile model         │
 └─────────────────────────────────────────┘
+```
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology | Why |
 |-------|-----------|-----|
@@ -57,8 +59,9 @@ Built with FastAPI + React + Groq (free LLaMA3-70b inference).
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
+```text
 ai-interviewer/
 ├── backend/
 │   ├── main.py                  # FastAPI app, CORS, router registration
@@ -90,10 +93,11 @@ ai-interviewer/
 │   └── index.css            # Global dark theme styles
 ├── index.html
 └── package.json
+```
 
 ---
 
-## 🚀 Running Locally
+## Running Locally
 
 ### Prerequisites
 
@@ -148,7 +152,9 @@ touch .env
 
 Add your Groq API key inside `.env`:
 
+```text
 GROQ_API_KEY=your_groq_api_key_here
+```
 
 Start the backend:
 
@@ -187,7 +193,7 @@ Frontend runs at `http://localhost:5173`
 
 ---
 
-## 🔑 Getting a Free Groq API Key
+## Getting a Free Groq API Key
 
 1. Go to [console.groq.com](https://console.groq.com)
 2. Sign up for a free account
@@ -198,8 +204,9 @@ Free tier includes ~14,400 requests/day which is more than enough.
 
 ---
 
-## 🌊 Interview Flow
+## Interview Flow
 
+```text
 Upload Resume + JD + GitHub
 ↓
 LLM analyzes profile
@@ -225,10 +232,11 @@ Skill breakdown
 Strengths & gaps
 Hire recommendation
 Per-question feedback
+```
 
 ---
 
-## 📌 API Endpoints
+## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -242,9 +250,9 @@ Full interactive docs available at `http://localhost:8000/docs`
 
 ---
 
-## 🔮 Roadmap
+## Roadmap
 
-- [ ] Voice mode (Whisper STT + browser TTS)
+- [x] Voice mode (Whisper STT + browser TTS)
 - [ ] Export report as PDF
 - [ ] PostgreSQL session persistence
 - [ ] Docker + docker-compose
@@ -254,7 +262,7 @@ Full interactive docs available at `http://localhost:8000/docs`
 
 ---
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 - [Groq](https://groq.com) for free ultra-fast LLM inference
 - [Meta LLaMA3](https://ai.meta.com/llama/) for the underlying model
