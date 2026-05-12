@@ -1,11 +1,23 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import context, interview, feedback, transcribe
+from core.database import init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create DB tables on startup
+    await init_db()
+    print("✅ Database initialized")
+    yield
+
 
 app = FastAPI(
     title="AI Interview Platform",
     description="Personalized AI/ML interview system powered by Groq LLaMA3 + Whisper",
-    version="1.0.0",
+    version="2.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

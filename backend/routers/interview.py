@@ -1,35 +1,31 @@
-"""
-POST /api/interview/start   → returns first question
-POST /api/interview/answer  → evaluate answer, return next question
-POST /api/interview/end     → force-end and go to report
-"""
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi import APIRouter, HTTPException
 from models.schemas import AnswerRequest, Difficulty
 from services.evaluator import evaluate_answer, adapt_difficulty
-from core.session_manager import get_session, update_session, end_session
+from core.db_session_manager import get_session, update_session, end_session
+from core.database import get_db
 
 router = APIRouter()
 
 
 @router.post("/start")
-async def start_interview(payload: dict):
+async def start_interview(
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+):
     session_id = payload.get("session_id")
-    session = get_session(session_id)
+    session = await get_session(db, session_id)
     if not session:
-        raise HTTPException(404, "Session not found. Please run /api/setup first.")
+        raise HTTPException(404, "Session not found.")
     if session["status"] != "active":
         raise HTTPException(400, "Interview already completed.")
 
     first_q = session["questions"][0]
-
-    # Add to conversation history
     history = session["conversation_history"]
-    history.append({
-        "role": "assistant",
-        "content": f"Question 1: {first_q['text']}"
-    })
-    update_session(session_id, {"conversation_history": history})
+    history.append({"role": "assistant", "content": f"Question 1: {first_q['text']}"})
+
+    await update_session(db, session_id, {"conversation_history": history})
 
     return {
         "session_id": session_id,
@@ -39,13 +35,16 @@ async def start_interview(payload: dict):
         "category": first_q["category"],
         "difficulty": first_q["difficulty"],
         "topic": first_q.get("topic", ""),
-        "message": f"Welcome! I'll be interviewing you today. Let's begin.",
+        "message": "Welcome! Let's begin.",
     }
 
 
 @router.post("/answer")
-async def submit_answer(payload: AnswerRequest):
-    session = get_session(payload.session_id)
+async def submit_answer(
+    payload: AnswerRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    session = await get_session(db, payload.session_id)
     if not session:
         raise HTTPException(404, "Session not found.")
     if session["status"] != "active":
@@ -54,7 +53,6 @@ async def submit_answer(payload: AnswerRequest):
     current_index = session["current_index"]
     questions = session["questions"]
 
-    # Which question are we answering?
     if session["awaiting_followup"]:
         current_q = {
             "text": session["followup_question"],
@@ -65,11 +63,9 @@ async def submit_answer(payload: AnswerRequest):
     else:
         current_q = questions[current_index]
 
-    # Add candidate answer to history
     history = session["conversation_history"]
     history.append({"role": "user", "content": payload.answer})
 
-    # Evaluate the answer
     evaluation = await evaluate_answer(
         question=current_q,
         answer=payload.answer,
@@ -79,7 +75,6 @@ async def submit_answer(payload: AnswerRequest):
     score = float(evaluation.get("score", 5.0))
     feedback = evaluation.get("feedback", "")
 
-    # Store results
     answers = session["answers"]
     scores = session["scores"]
     evaluations = session["evaluations"]
@@ -88,23 +83,22 @@ async def submit_answer(payload: AnswerRequest):
     scores.append(score)
     evaluations.append(evaluation)
 
-    # Add evaluation to history
     history.append({"role": "assistant", "content": f"Feedback: {feedback}"})
 
-    # Adapt difficulty
-    new_difficulty = adapt_difficulty(session["difficulty"], scores)
+    current_difficulty = Difficulty(session["difficulty"])
+    new_difficulty = adapt_difficulty(current_difficulty, scores)
 
-    # Decide: follow-up or next question?
-    needs_followup = evaluation.get("needs_followup", False) and not session["awaiting_followup"]
+    needs_followup = (
+        evaluation.get("needs_followup", False) and not session["awaiting_followup"]
+    )
     followup_q = evaluation.get("follow_up_question")
 
-    # Move to next main question (skip followup if already did one)
     if session["awaiting_followup"]:
         next_index = current_index + 1
         awaiting_followup = False
         followup_question = None
     elif needs_followup and followup_q:
-        next_index = current_index  # stay on same index
+        next_index = current_index
         awaiting_followup = True
         followup_question = followup_q
     else:
@@ -112,10 +106,8 @@ async def submit_answer(payload: AnswerRequest):
         awaiting_followup = False
         followup_question = None
 
-    # Check if interview is done
     interview_complete = next_index >= len(questions)
 
-    # Build next question data
     next_q_text = None
     next_category = None
     next_difficulty_str = new_difficulty.value
@@ -129,12 +121,10 @@ async def submit_answer(payload: AnswerRequest):
         next_category = next_q["category"]
         next_difficulty_str = next_q.get("difficulty", new_difficulty.value)
 
-    # Add next question to history
     if next_q_text:
         history.append({"role": "assistant", "content": next_q_text})
 
-    # Persist updates
-    update_session(payload.session_id, {
+    await update_session(db, payload.session_id, {
         "current_index": next_index,
         "conversation_history": history,
         "answers": answers,
@@ -162,15 +152,18 @@ async def submit_answer(payload: AnswerRequest):
 
 
 @router.post("/end")
-async def end_interview(payload: dict):
+async def end_interview(
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+):
     session_id = payload.get("session_id")
-    session = get_session(session_id)
+    session = await get_session(db, session_id)
     if not session:
         raise HTTPException(404, "Session not found.")
 
-    end_session(session_id)
+    await end_session(db, session_id)
     return {
-        "message": "Interview ended. Generating your report...",
+        "message": "Interview ended.",
         "session_id": session_id,
         "questions_answered": len(session["scores"]),
     }

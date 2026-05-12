@@ -1,12 +1,6 @@
-"""
-POST /api/setup
-Accepts resume PDF + job description + optional GitHub username.
-Parses everything, builds candidate profile, generates question bank,
-creates interview session. Returns session_id.
-"""
-
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.parser_service import (
     extract_text_from_pdf,
@@ -14,7 +8,8 @@ from services.parser_service import (
     build_candidate_profile,
 )
 from services.question_gen import generate_question_bank
-from core.session_manager import create_session
+from core.db_session_manager import create_session
+from core.database import get_db
 
 router = APIRouter()
 
@@ -24,33 +19,30 @@ async def setup_interview(
     resume: UploadFile = File(...),
     job_description: str = Form(...),
     github_username: Optional[str] = Form(None),
+    db: AsyncSession = Depends(get_db),
 ):
-    # 1. Read and validate the uploaded file
     if not resume.filename.endswith(".pdf"):
         raise HTTPException(400, "Only PDF resumes are supported.")
 
     file_bytes = await resume.read()
-    if len(file_bytes) > 5 * 1024 * 1024:  # 5 MB limit
+    if len(file_bytes) > 5 * 1024 * 1024:
         raise HTTPException(400, "Resume file too large (max 5MB).")
 
-    # 2. Extract text from PDF
     try:
         resume_text = extract_text_from_pdf(file_bytes)
     except Exception as e:
         raise HTTPException(500, f"Failed to parse PDF: {e}")
 
     if len(resume_text) < 100:
-        raise HTTPException(400, "Could not extract text from PDF. Is it a scanned image?")
+        raise HTTPException(400, "Could not extract text from PDF.")
 
-    # 3. Fetch GitHub summary (optional)
     github_summary = ""
     if github_username:
         try:
             github_summary = await fetch_github_summary(github_username.strip())
         except Exception:
-            github_summary = ""  # non-fatal, continue without it
+            github_summary = ""
 
-    # 4. Build structured candidate profile via LLM
     try:
         profile_data = await build_candidate_profile(
             resume_text=resume_text,
@@ -71,7 +63,6 @@ async def setup_interview(
         "summary": profile_data.get("summary", ""),
     }
 
-    # 5. Generate personalized question bank
     try:
         questions = await generate_question_bank(
             resume_text=resume_text,
@@ -86,10 +77,10 @@ async def setup_interview(
         raise HTTPException(500, f"Failed to generate questions: {e}")
 
     if not questions:
-        raise HTTPException(500, "No questions were generated. Please try again.")
+        raise HTTPException(500, "No questions generated. Please try again.")
 
-    # 6. Create session
-    session_id = create_session(
+    session_id = await create_session(
+        db=db,
         candidate_profile=candidate_profile,
         questions=questions,
     )
@@ -102,5 +93,5 @@ async def setup_interview(
         "experience_level": candidate_profile["experience_level"],
         "summary": candidate_profile["summary"],
         "total_questions": len(questions),
-        "message": "Profile analyzed successfully. Ready to start interview.",
+        "message": "Profile analyzed. Ready to start interview.",
     }
