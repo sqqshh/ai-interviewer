@@ -1,9 +1,3 @@
-"""
-transcribe_service.py
-Sends audio file to Groq's Whisper API for speech-to-text.
-Groq gives free Whisper transcription on the same API key.
-"""
-
 import os
 import httpx
 from dotenv import load_dotenv
@@ -20,17 +14,15 @@ def _get_api_key() -> str:
     return key
 
 
-async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.webm") -> str:
-    """
-    Send raw audio bytes to Groq Whisper and return transcript text.
-    Supports webm, mp4, wav, mp3 — browser MediaRecorder outputs webm by default.
-    """
+async def transcribe_audio(audio_bytes: bytes, filename: str = "recording.wav") -> str:
     headers = {
         "Authorization": f"Bearer {_get_api_key()}",
     }
 
+    # Try sending as mp4 first (most compatible with Groq Whisper)
+    # Use a clean filename with no codec info in it
     files = {
-        "file": (filename, audio_bytes, "audio/webm"),
+        "file": ("audio.mp4", audio_bytes, "audio/mp4"),
         "model": (None, "whisper-large-v3"),
         "response_format": (None, "json"),
         "language": (None, "en"),
@@ -43,6 +35,15 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.webm") -> 
             files=files,
         )
 
+        # If mp4 didn't work, retry as webm
+        if resp.status_code == 400:
+            files["file"] = ("audio.webm", audio_bytes, "audio/webm")
+            resp = await client.post(
+                GROQ_TRANSCRIPTION_URL,
+                headers=headers,
+                files=files,
+            )
+
         if resp.status_code != 200:
             raise ValueError(f"Whisper API error {resp.status_code}: {resp.text}")
 
@@ -50,6 +51,6 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.webm") -> 
         transcript = data.get("text", "").strip()
 
         if not transcript:
-            raise ValueError("Empty transcript returned")
+            raise ValueError("Empty transcript — please speak clearly and try again.")
 
         return transcript

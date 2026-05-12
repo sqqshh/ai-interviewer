@@ -88,8 +88,9 @@ export default function useVoice() {
       const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
       audioChunksRef.current = [];
 
+      // Always send as .wav extension — Groq is picky about filenames
       const formData = new FormData();
-      formData.append("audio", audioBlob, "recording.webm");
+      formData.append("audio", audioBlob, "recording.wav");
 
       const res = await api.post("/transcribe", formData, {
         headers: { "Content-Type": "multipart/form-data" },
