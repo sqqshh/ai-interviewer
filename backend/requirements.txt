@@ -6,4 +6,5 @@ python-dotenv==1.0.1
 python-multipart==0.0.9
 pydantic==1.10.13 
 sqlalchemy==2.0.30
-aiosqlite==0.20.0
+aiosqlite==0.20.0 
+asyncpg==0.29.0

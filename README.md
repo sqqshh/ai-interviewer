@@ -253,9 +253,9 @@ Full interactive docs available at `http://localhost:8000/docs`
 ## Roadmap
 
 - [x] Voice mode (Whisper STT + browser TTS)
-- [ ] Export report as PDF
-- [ ] PostgreSQL session persistence
-- [ ] Docker + docker-compose
+- [x] Export report as PDF
+- [x] PostgreSQL session persistence
+- [x] Docker + docker-compose
 - [ ] Deploy to Render + Vercel
 - [ ] Multi-role support (Data Scientist, MLOps, Research)
 - [ ] Company-specific interview styles
