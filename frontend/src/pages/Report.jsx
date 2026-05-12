@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/client";
-import { Brain, TrendingUp, AlertCircle, CheckCircle, RotateCcw, Loader2 } from "lucide-react";
+import { Brain, TrendingUp, AlertCircle, CheckCircle, RotateCcw, Loader2, Download } from "lucide-react";
+import { exportReportPDF } from "../utils/exportPDF";
 
 const RECOMMENDATION_COLORS = {
   "Strong Yes": "#22c55e",
@@ -163,10 +164,21 @@ export default function Report() {
           </div>
         </div>
 
-        {/* Start Over */}
-        <button style={styles.restartBtn} onClick={() => { sessionStorage.clear(); navigate("/"); }}>
-          <RotateCcw size={16} /> Start New Interview
-        </button>
+        {/* Action Buttons */}
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <button
+            style={styles.downloadBtn}
+            onClick={() => exportReportPDF(report)}
+          >
+            <Download size={16} /> Download PDF Report
+          </button>
+          <button
+            style={styles.restartBtn}
+            onClick={() => { sessionStorage.clear(); navigate("/"); }}
+          >
+            <RotateCcw size={16} /> Start New Interview
+          </button>
+        </div>
 
       </div>
       <style>{`@keyframes spin { from{transform:rotate(0deg)}to{transform:rotate(360deg)} }`}</style>
@@ -177,6 +189,12 @@ export default function Report() {
 const styles = {
   loadingPage: { height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#0f0f1a" },
   retryBtn: { marginTop: 16, padding: "10px 24px", background: "#6366f1", border: "none", borderRadius: 8, color: "white", cursor: "pointer" },
+  downloadBtn: {
+  display: "flex", alignItems: "center", justifyContent: "center",
+  gap: 8, background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+  border: "none", borderRadius: 12, padding: "14px 32px",
+  color: "white", fontSize: 15, fontWeight: 600, cursor: "pointer"
+},
   page: { minHeight: "100vh", background: "#0f0f1a", padding: "40px 20px" },
   container: { maxWidth: 780, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 },
   header: { textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 },
